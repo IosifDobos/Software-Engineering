@@ -1,0 +1,135 @@
+model assignment
+
+	class Person
+		attributes
+			name : String
+			age : Integer
+	end
+
+	class Employee < Person
+		attributes 
+			salary : Real
+		operations
+			raiseSalary(rate:Real): Real
+			begin
+				self.salary := self.salary + rate;
+				result := self.salary
+			end
+	end
+
+	class Manager < Person
+		operations
+			doHire(e:Employee , c:Contract)
+			begin 
+			--insert(self, c) into WorksFor;
+			--insert(e,c) into Has;
+			self.company.hire(e, c)
+			end
+
+			doFire(e:Employee)
+			begin
+
+			end
+
+			doDraft( e:Employee, c:Contract)
+			begin
+			self.company.draft(e,c)
+
+			end
+
+	end
+
+	class Contract 
+		attributes 
+			name : String
+			totalSalary : Real
+		operations
+			MySal() : Real
+			begin
+				declare totSa : Real;
+				totSa:=0;
+				for e in self.employee do
+					totSa := totSa + e.salary
+				end;
+				self.totalSalary := totSa;
+
+				result := self.totalSalary	
+			end;
+
+	end
+
+	class Company
+		attributes
+			name : String
+			location : String
+			totalSalary : Real
+			test : Boolean
+
+		operations
+			draft(e:Employee,c:Contract)
+			begin
+				insert(self,c)into WorksFor;
+				insert(e,c)into Has;
+			end
+
+			hire(e:Employee , c:Contract )
+			begin
+				--declare	c:Contract;
+				--insert(e , self) into WorksFor;
+				insert(e,c) into Has;
+				--insert(self, c) into WorksFor;
+				e.salary := 20000.0
+			end
+
+			fire(c:Employee)
+			begin
+			--delete(c,self) from WorksFor;
+			c.salary := 0.0
+			end
+
+			hireManager(m:Manager)
+			begin
+				insert(m,self) into Manages
+			end
+
+			--calcTotalSalary() : Real
+			--begin
+				--declare totSa : Real;
+				--totSa:=0;
+				--for e in self.employees do
+					--totSa := totSa + e.salary
+				--end;
+				--self.totalSalary := totSa;
+
+				--result := self.totalSalary
+			--end
+	end
+
+--association WorksFor between
+--Employee[*] role employees
+--Company[0..1] role employer
+--end
+
+association Manages between
+Manager[1]
+Company[1]
+end
+
+association WorksFor between
+Company[1] role manager
+Contract[1] role contract
+end
+
+association Has between
+Employee[*] role employee
+Contract[1] role eContract
+end
+
+--association Oversees between
+--Contract[*]
+--Manager[1]
+--end
+
+
+
+
