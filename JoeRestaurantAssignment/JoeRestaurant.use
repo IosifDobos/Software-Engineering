@@ -1,0 +1,271 @@
+model BookingSystem
+
+-- Author: Iosif Dobos
+-- Date: 13/04/2018
+
+
+-- Create class Date --
+class Date
+	attributes
+		day : Integer
+		month : Integer
+		year : Integer
+end
+
+class Time
+	attributes
+		hour : Integer
+		min : Integer
+end
+
+-- create class Customer --
+class Customer
+	attributes
+		name : String
+		phoneNumber : String
+	operations
+		cancel(r : Reservation)
+end
+
+-- Create class Booking --
+class Booking 
+	attributes
+		covers : Integer
+		date: Date
+		time : Time
+		table : Table
+	operations
+		getCovers( c : Integer)
+		getDate(d : Date)
+		--begin
+		--	self.date := d
+		--end
+		getTime(t : Time)
+		--begin
+		--	self.time := t --self.time.hour*60 + self.time.min
+		--end
+
+		getDetails() 
+
+		setArrivalTime(t : Time)
+		--begin 
+		--	self.time := t
+		--end
+
+		setTable(table : Table)
+		--begin
+		--	insert(self, table) into isAtTable
+		--end
+		
+		
+end
+
+-- create class WalkIn --
+class WalkIn < Booking
+
+end
+
+-- Class Reservation < Booking (generalisation)
+class Reservation < Booking 
+	attributes
+		arrivalTime : Time
+	operations
+		setArrivalTime(t : Time) 
+		--override the dateTime from Booking class
+		begin
+			self.time := t
+		end
+
+		--cancel(r : Reservation)
+		--	setCustomer(c : Customer)
+		--	begin
+		--		insert(c, self) into Makes
+		--	end
+
+		--deleteCustomer( c : Customer)
+		--begin
+		--	delete(c, self) from Makes
+		--end
+end
+
+-- create class BookingSystem 
+class BookingSystem
+	attributes
+		d : Date
+		t : Time
+	operations
+		cancel( b : Booking)
+		display()
+		makeReservation(r : Reservation, c : Customer, t : Table)
+		makeWalkIn( w : WalkIn, t : Table)
+		updateDisplay()
+end
+
+-- create class Restaurant
+
+class Restaurant
+	attributes
+		name : String
+	operations
+		getBookings(b : Booking)
+		getCustomer(c : Customer)
+		getTable(t : Table)
+		--makeReservation(r : Reservation)
+end
+
+
+
+enum tableStatus{ available, unavailable}
+class Table
+	attributes
+		number : Integer
+		places : Integer
+		status : tableStatus init = #available
+		noTables : Integer init = 10
+		freeTables : Integer init = 10
+	operations
+		ocupied()
+		begin
+			self.freeTables := self.freeTables - 1;
+			if(self.freeTables = 0) then
+				self.status := #unavailable
+			end
+		end
+
+		leave()
+		begin
+			self.freeTables := self.freeTables + 1;
+			self.status := #available
+		end
+	statemachines
+		psm States
+		states
+			newNumber : initial
+			available [self.freeTables > 0]
+			unavailable [self.freeTables = 0]
+		transitions
+			newNumber -> available{create}
+			available -> unavailable{[freeTables = 1] ocupied()}
+			available -> available{[freeTables > 1] ocupied()}
+			available -> available{leave()}
+			unavailable -> available{leave()}
+		end
+end
+
+--associations
+
+--association Customer Makes Reservation at Restaurant
+
+association Makes between
+	Customer[1] 
+	Reservation[*] 
+end
+
+-- association BookingSystem For Restaurant 
+
+association For between
+	BookingSystem[1]
+	Restaurant[1]
+end
+
+
+association Has between
+	Restaurant[1..*]
+	Customer[*] role customer
+end
+
+--association haveTable between
+--	Booking[1]
+--	Table[*]
+--end
+
+association isAtTable between
+	Booking[*] 
+	Table[1] 
+end
+
+association Contain between
+  Restaurant[1]
+  Table[*]
+end
+
+association Contains between
+	BookingSystem[1]
+	Booking[*]
+end
+
+constraints
+
+--context Booking
+--	inv BookingsForSameTableMustNotOveralap : Booking.allInstances.forAll(b1, b2 | (b1.getTime() >= b2.getTime() + 120) or (b1.getTime() <= b2.getTime() - 120))
+--	inv CoversLessTableCapacity: self.covers <= self.table.places
+--	inv MoreReservationsSimultaneouslyAtSameTable: Booking.allInstances->forAll(b1, b2 | ((b1 <> b2) and (b1.time = b2.time) implies (b1.table <> b2.table)))
+--	inv SameReservationCannotHaveMoreTimes: Booking.allInstances->forAll(b1,b2 | (b1 = b2) implies (b1.time = b2.time))
+
+
+context Booking::setArrivalTime(t : Time)
+	pre precon1 : t.isDefined()
+	pre precon2 : t.hour >= 0
+	pre precon3 : t.hour <= 23
+	pre precon4 : t.min >= 0
+	pre precon5 : t.min <= 59
+
+	--pre preConDate : d.isDefined()
+
+	--pre precon6 : d.day >= 1
+	--pre precon7 : d.day <= 31
+	--pre precon8 : d.month >= 1
+	--pre precon9 : d.month <= 12
+	--pre precon10 : d.year >= 2018
+
+context BookingSystem::makeWalkIn(w : WalkIn, t : Table)
+	pre precon1 : w.isDefined()
+	pre precon2 : t.isDefined()
+	pre precon3 : booking -> excludes(w)
+	pre precon4 : ((w.time.hour >= 0 ) and (w.time.hour <= 23 ) 
+		and (w.time.min >= 0 ) and (w.time.min <= 59 )
+		and (w.date.day >= 1 ) and (w.date.day <= 31 ) 
+		and (w.date.month >= 1 )and (w.date.month <= 12 ) and (w.date.year >= 2014 ))
+	pre precon5: w.covers <= t.places
+	post postcon1: booking -> includes(w)
+
+context Date
+	inv ReservationNotExistSimultaneously1:
+		Date.allInstances->forAll(dt1,dt2 | ((dt1 <> dt2)and (dt1.day = dt2.day) and (dt1.month = dt2.month)) implies dt1.year <> dt2.year)
+	inv ReservationNotExistSimultaneously2:
+		Date.allInstances->forAll(dt1,dt2 | ((dt1 <> dt2) and (dt1.day = dt2.day)) implies ((dt1.month <> dt2.month) or (dt1.year <> dt2.year)))
+	inv ReservationNotExistSimultaneously3:
+		Date.allInstances->forAll(dt1,dt2 | (dt1 <> dt2) implies ((dt1.day <> dt2.day) or (dt1.month <> dt2.month) or (dt1.year <> dt2.year)))
+	inv ReservationNotExistSimultaneously4:
+		Date.allInstances->forAll(dt1,dt2 | (dt1.day <> dt2.day) or (dt1.month <> dt2.month) or (dt1.year <> dt2.year))
+
+context BookingSystem::makeReservation(r : Reservation, c : Customer, t : Table)
+	pre preCond1: r.isDefined()
+	pre preCond2: c.isDefined()
+	pre preCond3: t.isDefined()
+	pre preCond4: booking -> excludes(r)
+	pre preCond5: ((r.time.hour >= 0 ) and (r.time.hour <= 23 ) 
+		and (r.time.min >= 0 ) and (r.time.min <= 59 )
+		and (r.date.day >= 1 ) and (r.date.day <= 31 ) 
+		and (r.date.month >= 1 )and (r.date.month <= 12 ) and (r.date.year >= 2018 ))
+	pre preCond6: ((r.arrivalTime.hour >= 0 ) and (r.arrivalTime.hour <= 23 ) 
+		and (r.arrivalTime.min >= 0 ) and (r.arrivalTime.min <= 59 ))
+		--and (r.arrivalTime.day >= 1 ) and (r.arrivalTime.day <= 31 ) 
+		--and (r.arrivalTime.month >= 1 )and (r.arrivalTime.month <= 12 ) and (--r.arrivalTime.year >= 2018 ))
+	pre preCond7: r.covers <= t.places
+	pre preCond8: c.phoneNumber <> Undefined
+	pre preCond9: c.name <> Undefined
+	post postCond1: booking -> includes(r)
+
+
+context Booking::setTable( table : Table)
+	pre preTable1 : table.isDefined()
+	pre preTable2 : table.places >= self.covers
+
+context Customer::cancel( r : Reservation)
+	pre cancelPre1 : reservation -> includes(r)
+	post cancelPost1 : reservation -> excludes(r)
+
+context BookingSystem::cancel(b : Booking)
+	pre cancelPre1: booking -> includes(b)
+	post cancelPost: booking -> excludes(b)
